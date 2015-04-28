@@ -73,21 +73,22 @@
 	
 	<target name="revnumber" description="Get the SVN greatest revision number">
 		<mkdir dir="${tmp.dir}" />
-		<exec dir="." executable="svn" output="ant-tmp/svn_output" failifexecutionfails="false" description="Get SVN info for all files recursively">
-			<arg value="info" />
-			<arg value="--recursive" />
+		<exec dir="." executable="git" output="ant-tmp/git_output" failifexecutionfails="false" description="Get GIT info for all files recursively">
+			<arg value="log" />
+			<arg value="-1" />
+			<arg value="--format=format:%H" />
 		</exec>
-		<exec dir="." executable="awk" input="ant-tmp/svn_output" outputproperty="svn.revision" failifexecutionfails="false" description="Extract highest revision number">
-			<arg value="BEGIN {max=0} /Revision:/ {if ($2 > max) max=$2} END {print max}" />
+		<exec dir="." executable="cat" input="ant-tmp/git_output" outputproperty="git.commit" failifexecutionfails="false" description="Extract highest revision number">
+			<!-- <arg value="BEGIN {max=0} /Revision:/ {if ($2 > max) max=$2} END {print max}" /> -->
 		</exec>
-		<condition property="svn.revision" value="0">
+		<condition property="git.commit" value="0">
 			<not>
-				<isset property="svn.revision" />
+				<isset property="git.commit" />
 			</not>
 		</condition>
 		<delete dir="${tmp.dir}" />
 		<tstamp description="To be used as build number" />
-		<echo>revision: ${svn.revision}</echo>
+		<echo>revision: ${git.commit}</echo>
 	</target>
 
 	
@@ -137,7 +138,7 @@
 			<fileset dir="views/script/" includes="*.sql" />
 			<fileset dir="views/security/" includes="*.sql" />
 		</concat>
-		<replace file="${build.dir}/${sql.base_components.output.file}" token="revision.placeholder" value="${svn.revision}"/>
+		<replace file="${build.dir}/${sql.base_components.output.file}" token="revision.placeholder" value="${git.commit}"/>
 	</target>
 	
 	
@@ -234,12 +235,12 @@
 	
 	<target name="dist" depends="clean, build, doc_sql, revnumber, test">
 		<mkdir dir="${dist.dir}" />
-		<propertyregex property="release_filename" input="${sql.build.output.file}" regexp="(.*).sql" select="\1-r${svn.revision}.sql" />
+		<propertyregex property="release_filename" input="${sql.build.output.file}" regexp="(.*).sql" select="\1-${git.commit}.sql" />
 		
 		<loadfile property="doc_sql" srcfile="${build.dir}/${sql.help.output.file}"></loadfile>
 		<copy file="${build.dir}/${sql.build.output.file}" tofile="${dist.dir}/${release_filename}" />
 		<replace file="${dist.dir}/${release_filename}" token="doc_sql.placeholder" value="${doc_sql}"/>
-		<tar destfile="${dist.dir}/common_schema_doc_r${svn.revision}.tar.gz" basedir="doc/html" compression="gzip" />
+		<tar destfile="${dist.dir}/common_schema_doc_r${git.commit}.tar.gz" basedir="doc/html" compression="gzip" />
 	</target>
 
 	<target name="deploy_file">
@@ -320,7 +321,7 @@
 		</concat>
 		<replace file="${doc.html.dir}/${doc_basename}" token="pagetitle" value="${component_name}" />
 		<replace file="${doc.html.dir}/${doc_basename}" token="pagename" value="${component_name}" />
-		<replace file="${doc.html.dir}/${doc_basename}" token="revision.placeholder" value="${svn.revision}"/>		
+		<replace file="${doc.html.dir}/${doc_basename}" token="revision.placeholder" value="${git.commit}"/>		
 	</target>
 	
 	<target name="generaldoc">
@@ -332,7 +333,7 @@
 		</concat>
 		<replace file="${doc.html.dir}/${doc_basename}" token="pagetitle" value="${docname}" />
 		<replace file="${doc.html.dir}/${doc_basename}" token="pagename" value="${docname}" />
-		<replace file="${doc.html.dir}/${doc_basename}" token="revision.placeholder" value="${svn.revision}"/>		
+		<replace file="${doc.html.dir}/${doc_basename}" token="revision.placeholder" value="${git.commit}"/>		
 	</target>
 	
 	
